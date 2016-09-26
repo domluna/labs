@@ -32,7 +32,7 @@ def topological_sort(input_nodes):
                 S.add(m)
     return L
 
-def loss_and_grad(node, feed_dict, wrt=[]):
+def value_and_grad(node, feed_dict, wrt=[]):
     input_nodes = [n for n in feed_dict.keys()]
     nodes = topological_sort(input_nodes)
 
@@ -48,7 +48,7 @@ def loss_and_grad(node, feed_dict, wrt=[]):
     for n in nodes[::-1]:
         n.backward()
 
-    return node.value, [n.dvalue for n in wrt]
+    return node.value, [n.dvalues[n] for n in wrt]
 
 # TODO: figure this out
 def prediction(node, feed_dict):
@@ -87,9 +87,11 @@ class Input(Node):
         self.value = val
 
     def backward(self):
-        self.dvalue = 0
+        # An Input node has no inputs so we refer to ourself
+        # for the dvalue
+        self.dvalues = {self: 0}
         for n in self.output_nodes:
-            self.dvalue += 1.0 * n.dvalues[self]
+            self.dvalues[self] += 1.0 * n.dvalues[self]
 
 class Add(Node):
     def __init__(self, x, y):
@@ -269,34 +271,20 @@ class CrossEntropyLoss(Node):
 
 ### TESTS
 
-# f = x * y + -z
+# f = (x * y) + (x * z)
 def test1():
     x, y, z = Input(), Input(), Input()
     g = Mul(x, y)
-    h = Neg(z)
+    h = Mul(x, z)
     f = Add(g, h)
-    feed_dict = {x: 3, y: 4, z: 5}
-    loss, grad = loss_and_grad(f, feed_dict, (x, y, z))
-    # print(loss, grad)
-    assert loss == 7
-    assert grad == [4, 3, -1]
-
-# f = x * y + x * -z
-def test2():
-    x, y, z = Input(), Input(), Input()
-    g = Mul(x, y)
-    h = Neg(z)
-    h = Mul(x, h)
-    f = Add(g, h)
-    feed_dict = {x: 3, y: 4, z: 5}
-    loss, grad = loss_and_grad(f, feed_dict, (x, y, z))
+    feed_dict = {x: 3, y: 4, z: -5}
+    loss, grad = value_and_grad(f, feed_dict, (x, y, z))
     print(loss, grad)
     assert loss == -3
-    assert grad == [-1, 3, -3]
+    assert grad == [-1, 3, 3]
 
 def main():
     test1()
-    test2()
     print('Tests pass!')
 
 if __name__ == '__main__':

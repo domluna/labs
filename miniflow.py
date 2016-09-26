@@ -34,6 +34,7 @@ def topological_sort(input_nodes):
 
 def value_and_grad(node, feed_dict, wrt=[]):
     input_nodes = [n for n in feed_dict.keys()]
+    # TODO: refactor so we don't class this everytime
     nodes = topological_sort(input_nodes)
 
     # forward pass
@@ -69,14 +70,18 @@ def prediction(node, feed_dict):
 
 class Node(object):
     """docstring for Node."""
+    def __init__(self, input_nodes=[]):
+        self.input_nodes = input_nodes
+        self.output_nodes = []
+        self.cache = {}
+        self.value = 0
+        self.dvalues = {}
 
     def forward(self):
         raise NotImplemented
 
     def backward(self):
         raise NotImplemented
-
-
 
 class Input(Node):
     def __init__(self):

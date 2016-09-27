@@ -204,9 +204,9 @@ class Linear(Node):
     def backward(self):
         self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
         if len(self.output_nodes) == 0:
-            self.dvalues[self.input_nodes[0]] += np.dot(self.value, self.cache[1].T)
-            self.dvalues[self.input_nodes[1]] += np.dot(self.cache[0].T, self.value)
-            self.dvalues[self.input_nodes[2]] += 1
+            self.dvalues[self.input_nodes[0]] += np.dot(np.ones_like(self.value), self.cache[1].T)
+            self.dvalues[self.input_nodes[1]] += np.dot(self.cache[0].T, np.ones_like(self.value))
+            self.dvalues[self.input_nodes[2]] += self.value.shape[0] # equivalent to summing this amount of 1s
             return
         for n in self.output_nodes:
             dval = n.dvalues[self]
@@ -265,7 +265,7 @@ class CrossEntropyLoss(Node):
     def backward(self):
         assert len(self.output_nodes) == 0
         self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
-        dprobs = self.cache[0]
+        dprobs = np.copy(self.cache[0])
         y = self.cache[1]
         n = dprobs.shape[0]
         dprobs[range(n), y] -= 1
@@ -284,12 +284,60 @@ def test1():
     f = Add(g, h)
     feed_dict = {x: 3, y: 4, z: -5}
     loss, grad = value_and_grad(f, feed_dict, (x, y, z))
-    print(loss, grad)
+    # print(loss, grad)
     assert loss == -3
     assert grad == [-1, 3, 3]
 
+# Linear test
+def test2():
+    x_in, w_in, b_in = Input(), Input(), Input()
+    f = Linear(x_in, w_in, b_in)
+
+    x = np.array([[-1., -2.], [-1, -2]])
+    w = np.array([[2., -3], [2., -3]])
+    b = np.array([-3., -3]).reshape(1, -1)
+
+    feed_dict = {x_in: x, w_in: w, b_in: b}
+    loss, grad = value_and_grad(f, feed_dict, (x_in, w_in, b_in))
+    # print(loss, grad)
+    assert np.allclose(loss, np.array([[-9.,  6.], [-9.,  6.]]))
+    assert np.allclose(grad[0], np.array([[-1.,  -1.], [-1.,  -1.]]))
+    assert np.allclose(grad[1], np.array([[-2.,  -2.], [-4., -4.]]))
+    assert np.allclose(grad[2], np.array([[2., 2.]]))
+
+# Sigmoid test
+def test3():
+    x_in = Input()
+    f = Sigmoid(x_in)
+
+    x = np.array([-10., 0, 10])
+    feed_dict = {x_in: x}
+    loss, grad = value_and_grad(f, feed_dict, [x_in])
+    # print(loss, grad)
+    assert np.allclose(loss, np.array([0., 0.5, 1.]), atol=1.e-4)
+    assert np.allclose(grad, np.array([0., 0.25, 0.]), atol=1.e-4)
+
+# CrossEntropyLoss test
+def test4():
+    x_in = Input()
+    y_in = Input()
+    f = CrossEntropyLoss(x_in, y_in)
+
+    # pretend output of a softmax
+    x = np.array([[0.5, 1., 1.5]])
+    y = np.array([1])
+    feed_dict = {x_in: x, y_in: y}
+    loss, grad = value_and_grad(f, feed_dict, wrt=[x_in])
+    # print(loss, grad)
+    assert np.allclose(loss, 1.1802, atol=1.e-4)
+    assert np.allclose(grad, np.array([[0.1863, -0.6928,  0.5064]]), atol=1.e-4)
+
+
 def main():
-    test1()
+    # test1()
+    # test2()
+    # test3()
+    test4()
     print('Tests pass!')
 
 if __name__ == '__main__':

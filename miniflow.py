@@ -1,9 +1,16 @@
 import numpy as np
 
 class Graph(object):
-    pass
+    def __init__(self):
+        self._G = {}
+        self._nodes = []
 
-# TODO: move all these functions into Graph class
+    def _topological_sort(self, input_nodes):
+        pass
+
+    def value_and_grad(self, node, feed_dict, wrt=[]):
+        pass
+
 
 def topological_sort(input_nodes):
     G = {}
@@ -238,6 +245,34 @@ class Sigmoid(Node):
             self.dvalues[self.input_nodes[0]] += (1 - self.value) * self.value * dval
 
 
+class Softmax(Node):
+    def __init__(self, x):
+        self.input_nodes = [x]
+        self.output_nodes = []
+        self.cache = {}
+        for n in self.input_nodes:
+            n.output_nodes.append(self)
+
+    def forward(self):
+        x = self.input_nodes[0].value
+        exp_x = np.exp(x)
+        probs = exp_x / np.sum(exp_x, axis=1, keepdims=True)
+        self.value = probs
+
+    def backward(self):
+        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
+        # combined derivative of softmax and cross entropy
+        # 
+        dprobs = np.copy(self.cache[0])
+        y = self.cache[1]
+        n = dprobs.shape[0]
+        dprobs[range(n), y] -= 1
+        dprobs /= n
+        # leave the gradient for the 2nd node all 0s, we don't care about the gradient
+        # for the labels
+        self.dvalues[self.input_nodes[0]] = dprobs
+
+
 class CrossEntropyLoss(Node):
     def __init__(self, x, y):
         self.input_nodes = [x, y]
@@ -265,6 +300,7 @@ class CrossEntropyLoss(Node):
     def backward(self):
         assert len(self.output_nodes) == 0
         self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
+        # combined derivative of softmax and cross entropy
         dprobs = np.copy(self.cache[0])
         y = self.cache[1]
         n = dprobs.shape[0]
@@ -273,7 +309,7 @@ class CrossEntropyLoss(Node):
         # leave the gradient for the 2nd node all 0s, we don't care about the gradient
         # for the labels
         self.dvalues[self.input_nodes[0]] = dprobs
-
+    
 ### TESTS
 
 # f = (x * y) + (x * z)
@@ -334,9 +370,9 @@ def test4():
 
 
 def main():
-    # test1()
-    # test2()
-    # test3()
+    test1()
+    test2()
+    test3()
     test4()
     print('Tests pass!')
 

@@ -1,17 +1,5 @@
 import numpy as np
 
-class Graph(object):
-    def __init__(self):
-        self._G = {}
-        self._nodes = []
-
-    def _topological_sort(self, input_nodes):
-        pass
-
-    def value_and_grad(self, node, feed_dict, wrt=[]):
-        pass
-
-
 def topological_sort(input_nodes):
     G = {}
     nodes = [n for n in input_nodes]
@@ -41,12 +29,13 @@ def topological_sort(input_nodes):
 
 def value_and_grad(node, feed_dict, wrt=[]):
     input_nodes = [n for n in feed_dict.keys()]
-    # TODO: refactor so we don't class this everytime
+    # maybe refactor so we don't call this everytime? the graph is small
+    # so it's probably not an issue
     nodes = topological_sort(input_nodes)
 
     # forward pass
     for n in nodes:
-        if isinstance(n, Input):
+        if n.typname == 'Input':
             v = feed_dict[n]
             n.forward(v)
         else:
@@ -58,31 +47,35 @@ def value_and_grad(node, feed_dict, wrt=[]):
 
     return node.value, [n.dvalues[n] for n in wrt]
 
-# TODO: figure this out
-def prediction(node, feed_dict):
+def accuracy(node, feed_dict):
     input_nodes = [n for n in feed_dict.keys()]
     nodes = topological_sort(input_nodes)
-    assert isinstance(node, CrossEntropyLoss)
+    # doesn't make sense is output node isn't Softmax
+    assert node.typname == 'CrossEntropyWithSoftmax'
+    assert nodes[-1].typname == 'CrossEntropyWithSoftmax'
+    
 
-    # forward pass
-    for n in nodes:
-        if isinstance(n, Input):
+    # forward pass on all nodes except the last
+    for n in nodes[:-1]:
+        if n.typname == 'Input':
             v = feed_dict[n]
             n.forward(v)
         else:
             n.forward()
 
-    return np.argmax(node.cache[0], axis=1)
-
+    return nodes[-1]._accuracy()
 
 class Node(object):
-    """docstring for Node."""
-    def __init__(self, input_nodes=[]):
+    def __init__(self, input_nodes):
         self.input_nodes = input_nodes
         self.output_nodes = []
         self.cache = {}
-        self.value = 0
+        self.value = None
         self.dvalues = {}
+        self.typname = type(self).__name__
+
+        for n in self.input_nodes:
+            n.output_nodes.append(self)
 
     def forward(self):
         raise NotImplemented
@@ -92,25 +85,21 @@ class Node(object):
 
 class Input(Node):
     def __init__(self):
-        self.input_nodes = []
-        self.output_nodes = []
+        Node.__init__(self, [])
 
-    def forward(self, val):
-        self.value = val
+    def forward(self, value):
+        self.value = value
 
     def backward(self):
         # An Input node has no inputs so we refer to ourself
         # for the dvalue
         self.dvalues = {self: 0}
         for n in self.output_nodes:
-            self.dvalues[self] += 1.0 * n.dvalues[self]
+            self.dvalues[self] += 1 * n.dvalues[self]
 
 class Add(Node):
     def __init__(self, x, y):
-        self.input_nodes = [x, y]
-        self.output_nodes = []
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
+        Node.__init__(self, [x,y])
 
     def forward(self):
         self.value = self.input_nodes[0].value + self.input_nodes[1].value
@@ -126,55 +115,9 @@ class Add(Node):
             self.dvalues[self.input_nodes[0]] += 1 * dval
             self.dvalues[self.input_nodes[1]] += 1 * dval
 
-
-class Sub(Node):
-    def __init__(self, x, y):
-        self.input_nodes = [x, y]
-        self.output_nodes = []
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
-
-    def forward(self):
-        self.value = self.input_nodes[0].value + self.input_nodes[1].value
-
-    def backward(self):
-        self.dvalues = {n: 0 for n in self.input_nodes}
-        if len(self.output_nodes) == 0:
-            self.dvalues[self.input_nodes[0]] += 1
-            self.dvalues[self.input_nodes[1]] += -1
-            return
-        for n in self.output_nodes:
-            dval = n.dvalues[self]
-            self.dvalues[self.input_nodes[0]] += 1 * dval
-            self.dvalues[self.input_nodes[1]] += -1 * dval
-
-
-class Neg(Node):
-    def __init__(self, x):
-        self.input_nodes = [x]
-        self.output_nodes = []
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
-
-    def forward(self):
-        self.value = -self.input_nodes[0].value
-
-    def backward(self):
-        self.dvalues = {n: 0 for n in self.input_nodes}
-        if len(self.output_nodes) == 0:
-            self.dvalues[self.input_nodes[0]] += -1
-            return
-        for n in self.output_nodes:
-            dval = n.dvalues[self]
-            self.dvalues[self.input_nodes[0]] += -1 * dval
-
 class Mul(Node):
     def __init__(self, x, y):
-        self.input_nodes = [x, y]
-        self.output_nodes = []
-        self.cache = {}
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
+        Node.__init__(self, [x,y])
 
     def forward(self):
         self.cache[0] = self.input_nodes[0].value
@@ -196,11 +139,7 @@ class Mul(Node):
 class Linear(Node):
     # TODO: numpy array assertions
     def __init__(self, x, w, b):
-        self.input_nodes = [x, w, b]
-        self.output_nodes = []
-        self.cache = {}
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
+        Node.__init__(self, [x,w,b])
 
     def forward(self):
         self.cache[0] = self.input_nodes[0].value
@@ -223,10 +162,7 @@ class Linear(Node):
 
 class Sigmoid(Node):
     def __init__(self, x):
-        self.input_nodes = [x]
-        self.output_nodes = []
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
+        Node.__init__(self, [x])
 
     def _sigmoid(self, x):
         return 1.0 / (1.0 + np.exp(-x))
@@ -245,46 +181,22 @@ class Sigmoid(Node):
             self.dvalues[self.input_nodes[0]] += (1 - self.value) * self.value * dval
 
 
-class Softmax(Node):
-    def __init__(self, x):
-        self.input_nodes = [x]
-        self.output_nodes = []
-        self.cache = {}
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
-
-    def forward(self):
-        x = self.input_nodes[0].value
-        exp_x = np.exp(x)
-        probs = exp_x / np.sum(exp_x, axis=1, keepdims=True)
-        self.value = probs
-
-    def backward(self):
-        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
-        # combined derivative of softmax and cross entropy
-        # 
-        dprobs = np.copy(self.cache[0])
-        y = self.cache[1]
-        n = dprobs.shape[0]
-        dprobs[range(n), y] -= 1
-        dprobs /= n
-        # leave the gradient for the 2nd node all 0s, we don't care about the gradient
-        # for the labels
-        self.dvalues[self.input_nodes[0]] = dprobs
-
-
-class CrossEntropyLoss(Node):
+class CrossEntropyWithSoftmax(Node):
     def __init__(self, x, y):
-        self.input_nodes = [x, y]
-        self.output_nodes = []
-        self.cache = {}
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
+        Node.__init__(self, [x,y])
 
     def _softmax(self, x):
         exp_x = np.exp(x)
         probs = exp_x / np.sum(exp_x, axis=1, keepdims=True)
         return probs
+
+    def _predict(self):
+        probs = self._softmax(self.input_nodes[0].value)
+        return np.argmax(probs, axis=1)
+
+    def _accuracy(self):
+        preds = self._predict()
+        return np.mean(preds == self.input_nodes[1].value)
 
     def forward(self):
         probs = self._softmax(self.input_nodes[0].value)
@@ -353,11 +265,11 @@ def test3():
     assert np.allclose(loss, np.array([0., 0.5, 1.]), atol=1.e-4)
     assert np.allclose(grad, np.array([0., 0.25, 0.]), atol=1.e-4)
 
-# CrossEntropyLoss test
+# CrossEntropyWithSoftmax test
 def test4():
     x_in = Input()
     y_in = Input()
-    f = CrossEntropyLoss(x_in, y_in)
+    f = CrossEntropyWithSoftmax(x_in, y_in)
 
     # pretend output of a softmax
     x = np.array([[0.5, 1., 1.5]])

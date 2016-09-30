@@ -105,6 +105,8 @@ class Sigmoid(Node):
         pass
 
 
+# NOTE: assume y is a vector with values 0-9
+# easier to work with than a one-hot encoding
 class CrossEntropyWithSoftmax(Node):
     def __init__(self, x, y):
         Node.__init__(self, [x, y])

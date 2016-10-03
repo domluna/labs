@@ -8,8 +8,8 @@ class Node(object):
     def __init__(self, input_nodes):
         self.input_nodes = input_nodes
         self.output_nodes = []
-        # store values computed in the forward pass 
-        # that can will be used in the backward pass here
+        # store here the values computed in the forward pass 
+        # that will be used in the backward pass
         self.cache = {}
         # set this value on the forward pass
         self.value = None
@@ -35,7 +35,7 @@ class Input(Node):
         Node.__init__(self, [])
 
     # NOTE: Input node is the only node where the value
-    # is passed as an argument to forward.
+    # is passed as an argument to forward().
     #
     # All other node implementations should get the value
     # of the previous nodes from self.input_nodes
@@ -58,7 +58,7 @@ class Add(Node):
 
     def forward(self):
         # TODO: implement
-        pass
+				pass
 
     def backward(self):
         # TODO: implement
@@ -69,8 +69,10 @@ class Mul(Node):
         Node.__init__(self, [x, y])
 
     def forward(self):
-        # TODO: implement
-        pass
+        # HINT: We've done this one for you to get your started
+				self.cache[0] = self.input_nodes[0].value
+				self.cache[1] = self.input_nodes[1].value
+				self.value = self.cache[0] * self.cache[1]
 
     def backward(self):
         # TODO: implement

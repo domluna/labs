@@ -133,6 +133,13 @@ class CrossEntropyWithSoftmax(Node):
 
 
 def topological_sort(input_nodes):
+    """
+    Sort the nodes in topological order.
+
+    All nodes should be reachable through the `input_nodes`.
+
+    Returns a list of sorted nodes.
+    """
     G = {}
     nodes = [n for n in input_nodes]
     while len(nodes) > 0:
@@ -159,7 +166,19 @@ def topological_sort(input_nodes):
                 S.add(m)
     return L
 
+
 def value_and_grad(node, feed_dict, wrt=[]):
+    """
+    Performs a forward and backward pass. The value of `node` after the forward pass will be returned along with the gradients of all nodes in `wrt`.
+
+    Arguments:
+
+        `node`: A node in the graph, should be the output node (have no outgoing edges.
+        `feed_dict`: A dictionary where the key is a `Input` node and the value is the respective value feed to that node.
+
+        `wrt`: A list of nodes. The gradient for each node will be returned.
+    """
+    assert node.output_nodes == []
     input_nodes = [n for n in feed_dict.keys()]
     # maybe refactor so we don't call this everytime? the graph is small
     # so it's probably not an issue
@@ -180,6 +199,14 @@ def value_and_grad(node, feed_dict, wrt=[]):
     return node.value, [n.dvalues[n] for n in wrt]
 
 def accuracy(node, feed_dict):
+    """
+    Computes the accuracy of the model. All the weights and data(features, labels) should be in `feed_dict`.
+
+    Arguments:
+
+        `node`: A node in the graph, should be the output node (have no outgoing edges.
+        `feed_dict`: A dictionary where the key is a `Input` node and the value is the respective value feed to that node.
+    """
     input_nodes = [n for n in feed_dict.keys()]
     nodes = topological_sort(input_nodes)
     # doesn't make sense is output node isn't Softmax

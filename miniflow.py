@@ -58,7 +58,7 @@ class Add(Node):
 
     def forward(self):
         # TODO: implement
-				pass
+        pass
 
     def backward(self):
         # TODO: implement
@@ -70,9 +70,9 @@ class Mul(Node):
 
     def forward(self):
         # HINT: We've done this one for you to get your started
-				self.cache[0] = self.input_nodes[0].value
-				self.cache[1] = self.input_nodes[1].value
-				self.value = self.cache[0] * self.cache[1]
+        self.cache[0] = self.input_nodes[0].value
+        self.cache[1] = self.input_nodes[1].value
+        self.value = self.cache[0] * self.cache[1]
 
     def backward(self):
         # TODO: implement

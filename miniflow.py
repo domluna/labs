@@ -9,7 +9,7 @@ import numpy as np
 # nodes. .
 #
 # The Input node is already implemented for you. All the `dvalues` 
-# have been initialized as well.
+# have been initialized for each node class as well.
 #
 # Look for the TODOs!
 
@@ -104,7 +104,7 @@ class Linear(Node):
 
     def backward(self):
         # TODO: implement
-        pass
+        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
 
 
 class Sigmoid(Node):
@@ -117,7 +117,7 @@ class Sigmoid(Node):
 
     def forward(self):
         # TODO: implement
-        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
+        pass
 
     def backward(self):
         # TODO: implement

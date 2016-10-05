@@ -1,8 +1,17 @@
 import numpy as np
 
+# NODE DEFINITIONS
 #
-# Node definitions
+# ALL NODES ARE SUBLCASSES OF THE Node CLASS.
+# 
+# In the exercises you will implement the `forward`
+# and `backward` methods of the Add, Mul, Linear, and CrossEntropyWithSoftmax
+# nodes. .
 #
+# The Input node is already implemented for you. All the `dvalues` 
+# have been initialized as well.
+#
+# Look for the TODOs!
 
 class Node(object):
     def __init__(self, input_nodes):
@@ -22,6 +31,7 @@ class Node(object):
         for n in self.input_nodes:
             n.output_nodes.append(self)
 
+    # These will be implemented in a subclass.
     def forward(self):
         raise NotImplemented
 
@@ -52,6 +62,24 @@ class Input(Node):
         for n in self.output_nodes:
             self.dvalues[self] += n.dvalues[self]
 
+class Mul(Node):
+    def __init__(self, x, y):
+        Node.__init__(self, [x, y])
+
+    def forward(self):
+        # HINT: We've done this one for you to get your started
+        # Multiply the input nodes and store the result in `self.value`.
+        # The Add Node is pretty similar ... :-)
+        self.cache[0] = self.input_nodes[0].value
+        self.cache[1] = self.input_nodes[1].value
+        self.value = self.cache[0] * self.cache[1]
+
+    def backward(self):
+        # TODO: implement
+        # Look back to the case study example in the notebook.
+        self.dvalues = {n: 0 for n in self.input_nodes}
+
+
 class Add(Node):
     def __init__(self, x, y):
         Node.__init__(self, [x, y])
@@ -62,21 +90,9 @@ class Add(Node):
 
     def backward(self):
         # TODO: implement
-        pass
+        # Look back to the case study example in the notebook.
+        self.dvalues = {n: 0 for n in self.input_nodes}
 
-class Mul(Node):
-    def __init__(self, x, y):
-        Node.__init__(self, [x, y])
-
-    def forward(self):
-        # HINT: We've done this one for you to get your started
-        self.cache[0] = self.input_nodes[0].value
-        self.cache[1] = self.input_nodes[1].value
-        self.value = self.cache[0] * self.cache[1]
-
-    def backward(self):
-        # TODO: implement
-        pass
 
 class Linear(Node):
     def __init__(self, x, w, b):
@@ -90,6 +106,7 @@ class Linear(Node):
         # TODO: implement
         pass
 
+
 class Sigmoid(Node):
     def __init__(self, x):
         Node.__init__(self, [x])
@@ -100,11 +117,11 @@ class Sigmoid(Node):
 
     def forward(self):
         # TODO: implement
-        pass
+        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
 
     def backward(self):
         # TODO: implement
-        pass
+        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
 
 
 # NOTE: assume y is a vector with values 0-9
@@ -131,7 +148,8 @@ class CrossEntropyWithSoftmax(Node):
 
     def backward(self):
         # TODO: implement
-        pass
+        assert len(self.output_nodes) == 0
+        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
 
 
 def topological_sort(input_nodes):
@@ -199,6 +217,7 @@ def value_and_grad(node, feed_dict, wrt=[]):
         n.backward()
 
     return node.value, [n.dvalues[n] for n in wrt]
+
 
 def accuracy(node, feed_dict):
     """

@@ -152,39 +152,9 @@ class CrossEntropyWithSoftmax(Node):
         self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
 
 
-def topological_sort(input_nodes):
-    """
-    Sort the nodes in topological order.
-
-    All nodes should be reachable through the `input_nodes`.
-
-    Returns a list of sorted nodes.
-    """
-    G = {}
-    nodes = [n for n in input_nodes]
-    while len(nodes) > 0:
-        n = nodes.pop(0)
-        if n not in G:
-            G[n] = {'in': set(), 'out': set()}
-        for m in n.output_nodes:
-            if m not in G:
-                G[m] = {'in': set(), 'out': set()}
-            G[n]['out'].add(m)
-            G[m]['in'].add(n)
-            nodes.append(m)
-
-    L = []
-    S = set(input_nodes)
-    while len(S) > 0:
-        n = S.pop()
-        L.append(n)
-        for m in n.output_nodes:
-            G[n]['out'].remove(m)
-            G[m]['in'].remove(n)
-            # if no other incoming edges add to S
-            if len(G[m]['in']) == 0:
-                S.add(m)
-    return L
+#
+# YOU DON'T HAVE TO IMPLEMENT ANYTHING IN THESE FUNCTIONS.
+#
 
 
 def value_and_grad(node, feed_dict, wrt=[]):
@@ -244,3 +214,38 @@ def accuracy(node, feed_dict):
             n.forward()
 
     return nodes[-1]._accuracy()
+
+
+def topological_sort(input_nodes):
+    """
+    Sort the nodes in topological order.
+
+    All nodes should be reachable through the `input_nodes`.
+
+    Returns a list of sorted nodes.
+    """
+    G = {}
+    nodes = [n for n in input_nodes]
+    while len(nodes) > 0:
+        n = nodes.pop(0)
+        if n not in G:
+            G[n] = {'in': set(), 'out': set()}
+        for m in n.output_nodes:
+            if m not in G:
+                G[m] = {'in': set(), 'out': set()}
+            G[n]['out'].add(m)
+            G[m]['in'].add(n)
+            nodes.append(m)
+
+    L = []
+    S = set(input_nodes)
+    while len(S) > 0:
+        n = S.pop()
+        L.append(n)
+        for m in n.output_nodes:
+            G[n]['out'].remove(m)
+            G[m]['in'].remove(n)
+            # if no other incoming edges add to S
+            if len(G[m]['in']) == 0:
+                S.add(m)
+    return L

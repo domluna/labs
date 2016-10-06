@@ -1,17 +1,72 @@
+"""
+In the exercises you will implement the `forward`
+and `backward` methods of the Mul, Linear, and CrossEntropyWithSoftmax
+nodes.
+
+Q: What do I do in the forward method?
+
+A:
+
+    1. Perform the computation described in the notebook for that node.
+        - You need the input node values to do this. Here's how you would access
+        the value of the first node:
+
+            first_node_value = self.input_nodes[0].value
+
+    2. Store the final result in `self.value`.
+
+    Here's the forward function for the Add node:
+
+        def forward(self):
+            self.value = self.input_nodes[0].value + self.input_nodes[1].value
+
+
+Q: What do I do in the backward method?
+
+A:
+
+    1. Compute the derivative of the current node with respect to each input node.
+    2. Multiply the above by the derivative of the each output node with respect to
+    respect to the current node.
+    3. Accumulate and store the results in `self.dvalues`.
+
+    Here's the backward function for the Add node:
+
+        def backward(self):
+            # Initialize all the derivatives to 0
+            self.dvalues = {n: 0 for n in self.input_nodes}
+
+            # If no output nodes pretend the output is 1.
+            # NOTE: for a matrix you could do this with `numpy.ones` or `numpy.ones_like`
+            if len(self.output_nodes) == 0:
+                self.dvalues[self.input_nodes[0]] += 1 * 1
+                self.dvalues[self.input_nodes[1]] += 1 * 1
+                return
+
+            # Accumulate for all output nodes (recall case study)
+            for n in self.output_nodes:
+                # Derivative of output node w.r.t current node
+                # we can use the self keyword to refer to the current node.
+                dval = n.dvalues[self] 
+
+                # The derivative of the Add node w.r.t both input nodes is 1 (recall 
+                the notebook).
+                self.dvalues[self.input_nodes[0]] += 1 * dval
+                self.dvalues[self.input_nodes[1]] += 1 * dval
+
+The Input and Add nodes have already been implemented for you. All the `dvalues` 
+have been initialized for each node class as well.
+
+Look for the TODOs!
+"""
 import numpy as np
 
+#
 # NODE DEFINITIONS
 #
 # ALL NODES ARE SUBLCASSES OF THE Node CLASS.
-# 
-# In the exercises you will implement the `forward`
-# and `backward` methods of the Add, Mul, Linear, and CrossEntropyWithSoftmax
-# nodes. .
 #
-# The Input node is already implemented for you. All the `dvalues` 
-# have been initialized for each node class as well.
-#
-# Look for the TODOs!
+
 
 class Node(object):
     def __init__(self, input_nodes):
@@ -38,6 +93,7 @@ class Node(object):
     def backward(self):
         raise NotImplemented
 
+
 class Input(Node):
     def __init__(self):
         # an Input node has no incoming nodes
@@ -62,25 +118,28 @@ class Input(Node):
         for n in self.output_nodes:
             self.dvalues[self] += n.dvalues[self]
 
-class Mul(Node):
+
+# NOTE: This one is already done for you.
+class Add(Node):
     def __init__(self, x, y):
         Node.__init__(self, [x, y])
 
     def forward(self):
-        # HINT: We've done this one for you to get your started
-        # Multiply the input nodes and store the result in `self.value`.
-        # The Add Node is pretty similar ... :-)
-        self.cache[0] = self.input_nodes[0].value
-        self.cache[1] = self.input_nodes[1].value
-        self.value = self.cache[0] * self.cache[1]
+        self.value = self.input_nodes[0].value + self.input_nodes[1].value
 
     def backward(self):
-        # TODO: implement
-        # Look back to the case study example in the notebook.
         self.dvalues = {n: 0 for n in self.input_nodes}
+        if len(self.output_nodes) == 0:
+            self.dvalues[self.input_nodes[0]] += 1
+            self.dvalues[self.input_nodes[1]] += 1
+            return
+        for n in self.output_nodes:
+            dval = n.dvalues[self]
+            self.dvalues[self.input_nodes[0]] += 1 * dval
+            self.dvalues[self.input_nodes[1]] += 1 * dval
 
 
-class Add(Node):
+class Mul(Node):
     def __init__(self, x, y):
         Node.__init__(self, [x, y])
 

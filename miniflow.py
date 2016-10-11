@@ -11,14 +11,14 @@ A:
         - You need the input node values to do this. Here's how you would access
         the value of the first node:
 
-            first_node_value = self.input_nodes[0].value
+            first_node_value = self.inbound_nodes[0].value
 
     2. Store the final result in `self.value`.
 
     Here's the forward function for the Add node:
 
         def forward(self):
-            self.value = self.input_nodes[0].value + self.input_nodes[1].value
+            self.value = self.inbound_nodes[0].value + self.inbound_nodes[1].value
 
 
 Q: What do I do in the backward method?
@@ -28,33 +28,33 @@ A:
     1. Compute the derivative of the current node with respect to each input node.
     2. Multiply the above by the derivative of the each output node with respect to
     respect to the current node.
-    3. Accumulate and store the results in `self.dvalues`.
+    3. Accumulate and store the results in `self.gradients`.
 
     Here's the backward function for the Add node:
 
         def backward(self):
             # Initialize all the derivatives to 0
-            self.dvalues = {n: 0 for n in self.input_nodes}
+            self.gradients = {n: 0 for n in self.inbound_nodes}
 
             # If no output nodes pretend the output is 1.
             # NOTE: for a matrix you could do this with `numpy.ones` or `numpy.ones_like`
-            if len(self.output_nodes) == 0:
-                self.dvalues[self.input_nodes[0]] += 1 * 1
-                self.dvalues[self.input_nodes[1]] += 1 * 1
+            if len(self.outbound_nodes) == 0:
+                self.gradients[self.inbound_nodes[0]] += 1 * 1
+                self.gradients[self.inbound_nodes[1]] += 1 * 1
                 return
 
             # Accumulate for all output nodes (recall case study)
-            for n in self.output_nodes:
+            for n in self.outbound_nodes:
                 # Derivative of output node w.r.t current node
                 # we can use the self keyword to refer to the current node.
-                dval = n.dvalues[self] 
+                grad = n.gradients[self] 
 
                 # The derivative of the Add node w.r.t both input nodes is 1 (recall 
                 the notebook).
-                self.dvalues[self.input_nodes[0]] += 1 * dval
-                self.dvalues[self.input_nodes[1]] += 1 * dval
+                self.gradients[self.inbound_nodes[0]] += 1 * grad
+                self.gradients[self.inbound_nodes[1]] += 1 * grad
 
-The Input and Add nodes have already been implemented for you. All the `dvalues` 
+The Input and Add nodes have already been implemented for you. All the `gradients` 
 have been initialized for each node class as well.
 
 Look for the TODOs!
@@ -69,29 +69,56 @@ import numpy as np
 
 
 class Node(object):
-    def __init__(self, input_nodes):
-        self.input_nodes = input_nodes
-        self.output_nodes = []
+    def __init__(self, inbound_nodes):
+        self.inbound_nodes = inbound_nodes
+        self.outbound_nodes = []
         # store here the values computed in the forward pass 
         # that will be used in the backward pass
         self.cache = {}
         # set this value on the forward pass
         self.value = None
-        # set these dvalues on the backward pass
+        # set these gradients on the backward pass
         # the key should be an input node and the
         # value the gradient for that node
-        self.dvalues = {}
+        self.gradients = {}
         self.typname = type(self).__name__
 
-        for n in self.input_nodes:
-            n.output_nodes.append(self)
+        for n in self.inbound_nodes:
+            n.outbound_nodes.append(self)
 
     # These will be implemented in a subclass.
     def forward(self):
+        """
+        Forward propagation.
+        
+        Compute the output value based on `inbound_nodes` and
+        store the result in self.value.
+        """
         raise NotImplemented
 
     def backward(self):
+        """
+        Backward propagation.
+        
+        Compute the gradient of the current node with respect
+        to the input nodes. The gradient of the loss with respect
+        to the current node should already be computed in the `gradients`
+        attribute of the output nodes.
+        """
         raise NotImplemented
+        
+
+# NOTE: This node is just here to pass dummy gradients backwards for testing
+# purposes.
+class DummyGrad(Node):
+    def __init__(self, x):
+        Node.__init__(self, [x])
+
+    def forward(self):
+        self.value = self.inbound_nodes[0].value
+
+    def backward(self, grad):
+        self.gradients = {n: grad for n in self.inbound_nodes}
 
 
 class Input(Node):
@@ -104,39 +131,34 @@ class Input(Node):
     # is passed as an argument to forward().
     #
     # All other node implementations should get the value
-    # of the previous nodes from self.input_nodes
+    # of the previous nodes from self.inbound_nodes
     #
     # Example:
-    # val0 = self.input_nodes[0].value
+    # val0 = self.inbound_nodes[0].value
     def forward(self, value):
         self.value = value
 
     def backward(self):
         # An Input node has no inputs so we refer to ourself
-        # for the dvalue
-        self.dvalues = {self: 0}
-        for n in self.output_nodes:
-            self.dvalues[self] += n.dvalues[self]
+        # for the gradient
+        self.gradients = {self: 0}
+        for n in self.outbound_nodes:
+            self.gradients[self] += n.gradients[self]
+            
 
-
-# NOTE: This one is already done for you.
 class Add(Node):
     def __init__(self, x, y):
         Node.__init__(self, [x, y])
 
     def forward(self):
-        self.value = self.input_nodes[0].value + self.input_nodes[1].value
+        self.value = self.inbound_nodes[0].value + self.inbound_nodes[1].value
 
     def backward(self):
-        self.dvalues = {n: 0 for n in self.input_nodes}
-        if len(self.output_nodes) == 0:
-            self.dvalues[self.input_nodes[0]] += 1
-            self.dvalues[self.input_nodes[1]] += 1
-            return
-        for n in self.output_nodes:
-            dval = n.dvalues[self]
-            self.dvalues[self.input_nodes[0]] += 1 * dval
-            self.dvalues[self.input_nodes[1]] += 1 * dval
+        self.gradients = {n: 0 for n in self.inbound_nodes}
+        for n in self.outbound_nodes:
+            grad = n.gradients[self]
+            self.gradients[self.inbound_nodes[0]] += 1 * grad
+            self.gradients[self.inbound_nodes[1]] += 1 * grad
 
 
 class Mul(Node):
@@ -150,7 +172,7 @@ class Mul(Node):
     def backward(self):
         # TODO: implement
         # Look back to the case study example in the notebook.
-        self.dvalues = {n: 0 for n in self.input_nodes}
+        self.gradients = {n: 0 for n in self.inbound_nodes}
 
 
 class Linear(Node):
@@ -163,7 +185,7 @@ class Linear(Node):
 
     def backward(self):
         # TODO: implement
-        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
+        self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_nodes}
 
 
 class Sigmoid(Node):
@@ -180,7 +202,7 @@ class Sigmoid(Node):
 
     def backward(self):
         # TODO: implement
-        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
+        self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_nodes}
 
 
 # NOTE: assume y is a vector with values 0-9
@@ -190,12 +212,12 @@ class CrossEntropyWithSoftmax(Node):
         Node.__init__(self, [x, y])
 
     def _predict(self):
-        probs = self._softmax(self.input_nodes[0].value)
+        probs = self._softmax(self.inbound_nodes[0].value)
         return np.argmax(probs, axis=1)
 
     def _accuracy(self):
         preds = self._predict()
-        return np.mean(preds == self.input_nodes[1].value)
+        return np.mean(preds == self.inbound_nodes[1].value)
 
     def _softmax(self, x):
         # TODO: implement softmax function
@@ -207,8 +229,8 @@ class CrossEntropyWithSoftmax(Node):
 
     def backward(self):
         # TODO: implement
-        assert len(self.output_nodes) == 0
-        self.dvalues = {n: np.zeros_like(n.value) for n in self.input_nodes}
+        assert len(self.outbound_nodes) == 0
+        self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_nodes}
 
 
 #
@@ -227,10 +249,8 @@ def value_and_grad(node, feed_dict, wrt=[]):
 
         `wrt`: A list of nodes. The gradient for each node will be returned.
     """
-    assert node.output_nodes == []
+    assert node.outbound_nodes == []
     input_nodes = [n for n in feed_dict.keys()]
-    # maybe refactor so we don't call this everytime? the graph is small
-    # so it's probably not an issue
     nodes = topological_sort(input_nodes)
 
     # forward pass
@@ -243,9 +263,13 @@ def value_and_grad(node, feed_dict, wrt=[]):
 
     # backward pass
     for n in nodes[::-1]:
-        n.backward()
+        if n.typname == 'DummyGrad':
+            g = feed_dict[n]
+            n.backward(g)
+        else:
+            n.backward()
 
-    return node.value, [n.dvalues[n] for n in wrt]
+    return node.value, [n.gradients[n] for n in wrt]
 
 
 def accuracy(node, feed_dict):
@@ -289,7 +313,7 @@ def topological_sort(input_nodes):
         n = nodes.pop(0)
         if n not in G:
             G[n] = {'in': set(), 'out': set()}
-        for m in n.output_nodes:
+        for m in n.outbound_nodes:
             if m not in G:
                 G[m] = {'in': set(), 'out': set()}
             G[n]['out'].add(m)
@@ -301,7 +325,7 @@ def topological_sort(input_nodes):
     while len(S) > 0:
         n = S.pop()
         L.append(n)
-        for m in n.output_nodes:
+        for m in n.outbound_nodes:
             G[n]['out'].remove(m)
             G[m]['in'].remove(n)
             # if no other incoming edges add to S

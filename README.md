@@ -1,6 +1,6 @@
 # Labs
 
-Lab 1 - Neural Network from Scratch
+Lab 1 - Making your own TensorFlow!
 
 ### Requirements
 

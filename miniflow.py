@@ -47,14 +47,14 @@ A:
             for n in self.outbound_nodes:
                 # Derivative of output node w.r.t current node
                 # we can use the self keyword to refer to the current node.
-                grad = n.gradients[self] 
+                grad = n.gradients[self]
 
-                # The derivative of the Add node w.r.t both input nodes is 1 (recall 
+                # The derivative of the Add node w.r.t both input nodes is 1 (recall
                 the notebook).
                 self.gradients[self.inbound_nodes[0]] += 1 * grad
                 self.gradients[self.inbound_nodes[1]] += 1 * grad
 
-The Input and Add nodes have already been implemented for you. All the `gradients` 
+The Input and Add nodes have already been implemented for you. All the `gradients`
 have been initialized for each node class as well.
 
 Look for the TODOs!
@@ -68,21 +68,21 @@ import numpy as np
 #
 
 
-class Node(object):
-    def __init__(self, inbound_nodes):
+class Node:
+    def __init__(self, inbound_nodes=[]):
         self.inbound_nodes = inbound_nodes
         self.outbound_nodes = []
-        # store here the values computed in the forward pass 
+        # cache stores the values computed in the forward pass
         # that will be used in the backward pass
         self.cache = {}
         # set this value on the forward pass
         self.value = None
-        # set these gradients on the backward pass
+        # set these gradients on the backward pass.
         # the key should be an input node and the
         # value the gradient for that node
         self.gradients = {}
-        self.typname = type(self).__name__
-
+        self.typename = type(self).__name__
+        # Add this node as an outbound node on its inputs.
         for n in self.inbound_nodes:
             n.outbound_nodes.append(self)
 
@@ -90,7 +90,7 @@ class Node(object):
     def forward(self):
         """
         Forward propagation.
-        
+
         Compute the output value based on `inbound_nodes` and
         store the result in self.value.
         """
@@ -99,14 +99,14 @@ class Node(object):
     def backward(self):
         """
         Backward propagation.
-        
+
         Compute the gradient of the current node with respect
         to the input nodes. The gradient of the loss with respect
         to the current node should already be computed in the `gradients`
         attribute of the output nodes.
         """
         raise NotImplemented
-        
+
 
 # NOTE: This node is just here to pass dummy gradients backwards for testing
 # purposes.
@@ -123,9 +123,9 @@ class DummyGrad(Node):
 
 class Input(Node):
     def __init__(self):
-        # an Input node has no incoming nodes
-        # so we pass an empty list
-        Node.__init__(self, [])
+        # an Input node has no inbound nodes,
+        # so no need to pass anything to the Node instantiator
+        Node.__init__(self)
 
     # NOTE: Input node is the only node where the value
     # is passed as an argument to forward().
@@ -144,7 +144,7 @@ class Input(Node):
         self.gradients = {self: 0}
         for n in self.outbound_nodes:
             self.gradients[self] += n.gradients[self]
-            
+
 
 class Add(Node):
     def __init__(self, x, y):
@@ -156,7 +156,9 @@ class Add(Node):
     def backward(self):
         self.gradients = {n: 0 for n in self.inbound_nodes}
         for n in self.outbound_nodes:
+            # get the computed gradient of this node from the output node
             grad = n.gradients[self]
+            # set the gradient from the input nodes to the partial of this
             self.gradients[self.inbound_nodes[0]] += 1 * grad
             self.gradients[self.inbound_nodes[1]] += 1 * grad
 
@@ -247,7 +249,7 @@ def value_and_grad(node, feed_dict, wrt=[]):
         `node`: A node in the graph, should be the output node (have no outgoing edges.
         `feed_dict`: A dictionary where the key is a `Input` node and the value is the respective value feed to that node.
 
-        `wrt`: A list of nodes. The gradient for each node will be returned.
+        `wrt`: 'With Respect To'. A list of nodes. The gradient for each node will be returned.
     """
     assert node.outbound_nodes == []
     input_nodes = [n for n in feed_dict.keys()]
@@ -255,7 +257,7 @@ def value_and_grad(node, feed_dict, wrt=[]):
 
     # forward pass
     for n in nodes:
-        if n.typname == 'Input':
+        if n.typename == 'Input':
             v = feed_dict[n]
             n.forward(v)
         else:
@@ -263,7 +265,7 @@ def value_and_grad(node, feed_dict, wrt=[]):
 
     # backward pass
     for n in nodes[::-1]:
-        if n.typname == 'DummyGrad':
+        if n.typename == 'DummyGrad':
             g = feed_dict[n]
             n.backward(g)
         else:
@@ -284,13 +286,13 @@ def accuracy(node, feed_dict):
     input_nodes = [n for n in feed_dict.keys()]
     nodes = topological_sort(input_nodes)
     # doesn't make sense is output node isn't Softmax
-    assert node.typname == 'CrossEntropyWithSoftmax'
-    assert nodes[-1].typname == 'CrossEntropyWithSoftmax'
-    
+    assert node.typename == 'CrossEntropyWithSoftmax'
+    assert nodes[-1].typename == 'CrossEntropyWithSoftmax'
+
 
     # forward pass on all nodes except the last
     for n in nodes[:-1]:
-        if n.typname == 'Input':
+        if n.typename == 'Input':
             v = feed_dict[n]
             n.forward(v)
         else:

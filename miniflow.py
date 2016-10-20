@@ -69,21 +69,21 @@ import numpy as np
 
 
 class Node:
-    def __init__(self, inbound_nodes=[], label=''):
-        # An optional description of the node - most useful for outputs.
-        self.label = label
+    def __init__(self, inbound_nodes=[]):
+        # Nodes from which this Node receives values.
         self.inbound_nodes = inbound_nodes
+        # Nodes to which this Node passes values.
         self.outbound_nodes = []
-        # cache stores the values computed in the forward pass
-        # that will be used in the backward pass
-        self.cache = {}
-        # set this value on the forward pass
+        # A calculated value
         self.value = None
-        # set these gradients on the backward pass.
-        # the key should be an input node and the
-        # value the gradient for that node
+        # Cache stores the values computed in the forward pass
+        # that will be used in the backward pass.
+        self.cache = {}
+        # Set these gradients on the backward pass.
+        # The key should be an input node and the
+        # value the gradient for that node.
         self.gradients = {}
-        # hack because isinstance acts weird (TODO: how so?)
+        # Hack because isinstance acts weird.
         self.typename = type(self).__name__
         # Add this node as an outbound node on its inputs.
         for n in self.inbound_nodes:
@@ -114,7 +114,7 @@ class Node:
 # NOTE: This node is just here to pass dummy gradients backwards for testing
 # purposes.
 class DummyGrad(Node):
-    def __init__(self, x, label=''):
+    def __init__(self, x):
         Node.__init__(self, [x], label)
 
     def forward(self):
@@ -125,21 +125,23 @@ class DummyGrad(Node):
 
 
 class Input(Node):
-    def __init__(self, label=''):
-        # an Input node has no inbound nodes,
+    def __init__(self):
+        # An Input node has no inbound nodes,
         # so no need to pass anything to the Node instantiator
-        Node.__init__(self, label)
+        Node.__init__(self)
 
     # NOTE: Input node is the only node where the value
-    # is passed as an argument to forward().
+    # may be passed as an argument to forward().
     #
     # All other node implementations should get the value
     # of the previous nodes from self.inbound_nodes
     #
     # Example:
     # val0 = self.inbound_nodes[0].value
-    def forward(self, value):
-        self.value = value
+    def forward(self, value=None):
+        # Overwrite the value if one is passed in.
+        if value:
+            self.value = value
 
     def backward(self):
         # An Input node has no inputs so we refer to ourself
@@ -150,11 +152,16 @@ class Input(Node):
 
 
 class Add(Node):
-    def __init__(self, x, y, label=''):
-        Node.__init__(self, [x, y], label)
+    def __init__(self, *inputs):
+        Node.__init__(self, inputs)
 
     def forward(self):
-        self.value = self.inbound_nodes[0].value + self.inbound_nodes[1].value
+        # x_value = self.inbound_nodes[0].value
+        # y_value = self.inbound_nodes[1].value
+        # self.value = x_value + y_value
+        self.value = 0
+        for node in self.inbound_nodes:
+            self.value += node.value
 
     def backward(self):
         self.gradients = {n: 0 for n in self.inbound_nodes}
@@ -167,8 +174,8 @@ class Add(Node):
 
 
 class Mul(Node):
-    def __init__(self, x, y, label=''):
-        Node.__init__(self, [x, y], label)
+    def __init__(self, x, y):
+        Node.__init__(self, [x, y])
 
     def forward(self):
         # TODO: implement
@@ -243,39 +250,39 @@ class CrossEntropyWithSoftmax(Node):
 #
 
 
-# def value_and_grad(node, feed_dict, wrt=[]):
-#     """
-#     Performs a forward and backward pass. The `value` of node after the forward pass will be returned along with the gradients of all nodes in wrt.
+def value_and_grad(node, feed_dict, wrt=[]):
+    """
+    Performs a forward and backward pass. The `value` of node after the forward pass will be returned along with the gradients of all nodes in wrt.
 
-#     Arguments:
+    Arguments:
 
-#         `node`: A node in the graph, should be the output node (have no outgoing edges).
-#         `feed_dict`: A dictionary where the key is a `Input` node and the value is the respective value feed to that node.
+        `node`: A node in the graph, should be the output node (have no outgoing edges).
+        `feed_dict`: A dictionary where the key is a `Input` node and the value is the respective value feed to that node.
 
-#         `wrt`: 'With Respect To'. A list of nodes. The gradient for each node will be returned.
-#     """
-#     assert node.outbound_nodes == []
-#     input_nodes = [n for n in feed_dict.keys()]
-#     # Creates a flattened list of nodes in a valid operational order.
-#     nodes = topological_sort(input_nodes)
+        `wrt`: 'With Respect To'. A list of nodes. The gradient for each node will be returned.
+    """
+    assert node.outbound_nodes == []
+    input_nodes = [n for n in feed_dict.keys()]
+    # Creates a flattened list of nodes in a valid operational order.
+    nodes = topological_sort(input_nodes)
 
-#     # forward pass
-#     for n in nodes:
-#         if n.typename == 'Input':
-#             v = feed_dict[n]
-#             n.forward(v)
-#         else:
-#             n.forward()
+    # forward pass
+    for n in nodes:
+        if n.typename == 'Input':
+            v = feed_dict[n]
+            n.forward(v)
+        else:
+            n.forward()
 
-#     # backward pass
-#     for n in nodes[::-1]:
-#         if n.typename == 'DummyGrad':
-#             g = feed_dict[n]
-#             n.backward(g)
-#         else:
-#             n.backward()
+    # backward pass
+    for n in nodes[::-1]:
+        if n.typename == 'DummyGrad':
+            g = feed_dict[n]
+            n.backward(g)
+        else:
+            n.backward()
 
-#     return node.value, [n.gradients[n] for n in wrt]
+    return node.value, [n.gradients[n] for n in wrt]
 
 
 def accuracy(node, feed_dict):
@@ -396,13 +403,8 @@ def forward_pass(output_node, sorted_nodes):
     Returns the output node's value
     """
 
-    assert output_node.outbound_nodes == []
     for n in sorted_nodes:
-        if n.typename == 'Input':
-            v = n.value
-            n.forward(v)
-        else:
-            n.forward()
+        n.forward()
 
     return output_node.value
 

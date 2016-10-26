@@ -18,7 +18,7 @@
       "name": "Integrated Terminal/Console",
       "type": "python",
       "request": "launch",
-      "stopOnEntry": true,
+      "stopOnEntry": false,
       "pythonPath": "${config.python.pythonPath}",
       "program": "${file}",
       "console": "integratedTerminal",

@@ -179,3 +179,12 @@ For this quiz, I want you to:
 1. Open `nn.py` below. **You don't need to change anything.** I just want you to see how `miniflow` works.
 2. Open miniflow.py. **Finish the `forward` method on the `Add` class.**
 3. Test your network by hitting "Test Run!" When the output looks right, hit "Submit!"
+
+
+
+
+
+<video width="100%" controls loop >
+  <source src="https://s3.amazonaws.com/content.udacity-data.com/courses/carnd/videos/hawk-zoom1.mp4" type="video/mp4">
+  Your browser does not support the video tag. <a href="https://s3.amazonaws.com/content.udacity-data.com/courses/carnd/videos/hawk-zoom1.mp4" target="_blank">Click here to see the animation.</a>
+</video>

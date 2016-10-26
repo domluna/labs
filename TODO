@@ -1,0 +1,34 @@
+CoCo:
+* preface about this being a conceptual build with imperfections and not necessarily efficient
+* topological sort diagram
+* higher res add neuron animation
+  * and fix the inner a tag href
+* add Mul, Sub, Div notes in Forward Prop solution
+* equations
+  * eqn 1 (learning and loss) -> switch i for n
+  * math in Linear transform
+* double check that all references to value are gone (esp first quiz)
+* iamges
+  * forward prop
+  * problem with neurons
+    * layers
+  * linear transform
+    * graph reflecting quiz
+  * gradient descent
+    * so many
+  * sigmoid function
+    * pixelated '3' from MNIST
+    * randomly labeled and correctly labeled '3'
+* fix equation numbering start to finish
+
+Needs testing:
+* forward prop bonus quiz (Ryan is on it)
+
+Structure:
+* uhhh... is 'categorize' the right word to describe what activation functions do?
+* account for Neuron misnomer with Add and Linear?
+* mention what I used as a resource (NN book)
+
+
+Bugs in CoCo:
+* add image atom. add text atom. text doesn't save.

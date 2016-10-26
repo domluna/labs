@@ -1,0 +1,69 @@
+\mathbf{W}_n_k = \left.\left(
+                  \vphantom{\begin{array}{c}1\\1\\1\\1\\1\end{array}}
+                  \smash{\underbrace{
+                      \begin{array}{ccccc}
+                             1&0&0&\cdots &0\\
+                             0&1&0&\cdots &0\\
+                             0&0&1&\cdots &0\\
+                             \vdots&&&\ddots&\\
+                             0&0&0&\cdots &1
+                      \end{array}
+                      }_{k\text{ columns}}}
+              \right)\right\}
+              \,n\text{ rows}
+
+
+
+
+\mathbf{X}_n_m = \left.\left(
+                  \vphantom{\begin{array}{c}1\\1\\1\\1\\1\end{array}}
+                  \smash{\underbrace{
+                      \begin{array}{ccccc}
+                             1&0&0&\cdots &0\\
+                             0&1&0&\cdots &0\\
+                             0&0&1&\cdots &0\\
+                             \vdots&&&\ddots&\\
+                             0&0&0&\cdots &1
+                      \end{array}
+                      }_{m\text{ columns}}}
+              \right)\right\}
+              \,n\text{ rows}
+
+
+\nabla H (F, G) = \begin{bmatrix}
+\partial H / \partial F \\
+\partial H / \partial G
+\end{bmatrix} = \begin{bmatrix}
+G\nabla F \\
+F\nabla G
+\end{bmatrix}
+
+C(w, b) \equiv \frac{1}{2n}\sum_{x}\left \| y(x) - a \right \|^2
+
+\nabla C \equiv \begin{bmatrix}
+\frac{ \partial C }{ \partial x_1 }, & \dots,  & \frac{ \partial C }{ \partial x_n }
+\end{bmatrix}
+
+\Delta C \approx \nabla C \cdot \Delta x
+
+\nabla C \equiv \begin{bmatrix}
+\frac{ \partial C }{ \partial x_1 }\\
+\dots \\
+\frac{ \partial C }{ \partial x_n }
+\end{bmatrix}
+
+\Delta x = - \eta\nabla C
+
+{w}' = w - \eta \frac{\partial C}{\partial w}
+
+{w}' = w - \eta \frac{\partial C}{\partial w}\hspace{1cm}
+{b}' = b - \eta \frac{\partial C}{\partial b}
+
+\frac{\partial o}{\partial X}\ = W \hspace{1cm}
+\frac{\partial o}{\partial W}\ = X \hspace{1cm}
+\frac{\partial o}{\partial b}\ = 1
+
+\frac{\partial C}{\partial X}\ = W\frac{\partial C}{\partial o} \hspace{1cm}
+\frac{\partial C}{\partial W}\ = X\frac{\partial C}{\partial o} \hspace{1cm}
+\frac{\partial C}{\partial b}\ = 1 * \frac{\partial C}{\partial o}
+

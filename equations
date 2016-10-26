@@ -81,3 +81,4 @@ C(w, b) \equiv \frac{1}{2n}\sum_{x}\left \| y(x) - a \right \|^2
 \frac{\partial C}{\partial W}\ = X\frac{\partial C}{\partial o} \hspace{1cm}
 \frac{\partial C}{\partial b}\ = 1 * \frac{\partial C}{\partial o}
 
+\frac{\partial C}{\partial x}\ = \text{-}2a

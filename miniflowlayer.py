@@ -140,7 +140,7 @@ class Sigmoid(Layer):
         """
         # Initialize the gradients to 0.
         self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_layers}
-        # Sum the gradients over all the outputs.
+        # Sum the partial with respect to the input over all the outputs.
         for n in self.outbound_layers:
             grad_cost = n.gradients[self]
             sigmoid = self.value
@@ -170,16 +170,17 @@ class MSE(Layer):
         """
         Calculates the mean squared error.
         """
-        actual_output = self.inbound_layers[0].value
+        # Save the computed output for backward.
+        self.computed_output = self.inbound_layers[0].value
         first_term = 1. / (2. * self.n_inputs)
-        norm = np.linalg.norm(self.ideal_output - actual_output)
+        norm = np.linalg.norm(self.ideal_output - self.computed_output)
         self.value = first_term * np.square(norm)
 
     def backward(self):
         """
         Calculates the gradient of the cost.
         """
-        self.gradients[self.inbound_layers[0]] = -2 * self.inbound_layers[0].value
+        self.gradients[self.inbound_layers[0]] = -2 * (self.ideal_output - self.computed_output)
 
 
 # NOTE: assume y is a vector with values 0-9
@@ -256,14 +257,17 @@ def topological_sort(feed_dict, ideal_output):
     return L
 
 
-def forward_and_backward(feed_dict, ideal_output):
+def forward_and_backward(feed_dict, ideal_output, trainables=[]):
     """
     Performs a forward pass and a backward pass through a list of sorted Layers.
+
+    Returns a list of the gradients on the trainables.
 
     Arguments:
 
         `feed_dict`: A dictionary where the key is a `Input` Layer and the value is the respective value feed to that Layer.
         `ideal_output`: The correct output value for the last activation layer.
+        `trainables`: Inputs that need to be modified by SGD.
     """
 
     sorted_layers = topological_sort(feed_dict, ideal_output)
@@ -278,12 +282,15 @@ def forward_and_backward(feed_dict, ideal_output):
     for n in reversed_layers:
         n.backward()
 
-    return sorted_layers
+    # Returns a list of the gradients on the weights and bias (the trainables).
+    return [n.gradients[n] for n in trainables]
 
 
 def train_SGD(feed_dict, ideal_output, trainables=[], epochs=1, learning_rate=1e-2):
     """
-    Performs a forward pass and a backward pass through a list of sorted Layers.
+    Performs many forward passes and a backward passes through
+    a list of sorted Layers while performing stochastic gradient
+    descent.
 
     Arguments:
 
@@ -308,9 +315,14 @@ def train_SGD(feed_dict, ideal_output, trainables=[], epochs=1, learning_rate=1e
             n.backward()
 
         # Performs SGD
-        gradient_cost = [n.gradients[n] for n in trainables]
+        # Get a list of the partials with respect to each trainable input.
+        partials = [n.gradients[n] for n in trainables]
+        # Loop over the trainables
         for n in range(len(trainables)):
-            trainables[n].value -= learning_rate * gradient_cost[n]
+            # Change the trainable's value by subtracting the learning rate
+            # multiplied by the partial of the cost with respect to this
+            # trainable.
+            trainables[n].value -= learning_rate * partials[n]
         print('Epoch: ' + str(i) + ', Loss: ' + str(sorted_layers[-1].value))
 
     return sorted_layers[-1].value

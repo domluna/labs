@@ -8,7 +8,7 @@ CoCo:
   * eqn 1 (learning and loss) -> switch i for n
   * math in Linear transform
 * double check that all references to value are gone (esp first quiz)
-* iamges
+* images
   * forward prop
   * problem with neurons
     * layers
@@ -20,15 +20,19 @@ CoCo:
     * pixelated '3' from MNIST
     * randomly labeled and correctly labeled '3'
 * fix equation numbering start to finish
+* `ideal_output` and `actual_output` are confusing. get better names
+* n.gradients[n] - gradients[self] on inputs is a bit weird. maybe a different property?
 
 Needs testing:
 * forward prop bonus quiz (Ryan is on it)
+* drop norm from MSE?
 
 Structure:
 * uhhh... is 'categorize' the right word to describe what activation functions do?
 * account for Neuron misnomer with Add and Linear?
 * mention what I used as a resource (NN book)
-
+  * probably mention that's where MNIST data came from
+  * and mnist_loader
 
 Bugs in CoCo:
 * add image atom. add text atom. text doesn't save.

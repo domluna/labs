@@ -16,4 +16,4 @@ cost = MSE(g)
 
 feed_dict = {inputs: x, weights: w, bias: b}
 
-train_SGD(feed_dict, ideal_output, [weights, bias], 40)
+train_SGD(feed_dict, ideal_output, [weights, bias], 1000)

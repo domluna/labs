@@ -15,11 +15,9 @@ g = Sigmoid(f)
 cost = MSE(g)
 
 feed_dict = {inputs: x, weights: w, bias: b}
-gradiented_layers = forward_and_backward(feed_dict, ideal_output)
+gradients = forward_and_backward(feed_dict, ideal_output, [weights, bias])
 
 """
 what's the output?
 """
-# print(gradiented_layers)
-for l in gradiented_layers:
-    print(l.gradients)
+print(gradients)

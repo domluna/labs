@@ -50,13 +50,13 @@ class Linear(Layer):
         self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_layers}
         # Cycle through the outputs. The gradient will change depending
         # on each output.
-        for n in self.outbound_nodes:
+        for n in self.outbound_layers:
             # Get the partial of the cost with respect to this layer.
             grad_cost = n.gradients[self]
             # Set the partial of the loss with respect to this layer's inputs.
             self.gradients[self.inbound_layers[0]] += np.dot(grad_cost, self.inbound_layers[1].value.T)
             # Set the partial of the loss with respect to this layer's weights.
-            self.gradients[self.inbound_layers[1]] += np.dot(self.inbound_layers[0].value.T, grad)
+            self.gradients[self.inbound_layers[1]] += np.dot(self.inbound_layers[0].value.T, grad_cost)
             # Set the partial of the loss with respect to this layer's bias.
             self.gradients[self.inbound_layers[2]] += np.sum(grad_cost, axis=0, keepdims=False)
 
@@ -79,8 +79,49 @@ class Sigmoid(Layer):
         self.value = self._sigmoid(input_value)
 
     def backward(self):
-        # TODO: implement
-        self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_Layer}
+        # Zero the gradients
+        self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_layers}
+        for n in self.outbound_layers:
+            grad_cost = n.gradients[self]
+            sigmoid = self.value
+            self.gradients[self.inbound_layers[0]] += sigmoid * (1 - sigmoid) * grad_cost
+
+
+class MSE(Layer):
+    def __init__(self, inbound_layer):
+        """
+        The mean squared error cost function.
+        Should be used as the last layer for a network.
+
+        Arguments:
+            `inbound_layer`: A layer with an activation function.
+            `ideal_output`: A numpy array.
+            `feed_dict`: The same feed_dict that sets the inputs.
+        """
+        # Call the base class' constructor.
+        Layer.__init__(self, [inbound_layer])
+        """
+        These two properties are set during topological_sort()
+        """
+        # The ideal_output for forward().
+        self.ideal_output = None
+        # The number of inputs for forward().
+        self.n_inputs = None
+
+    def forward(self):
+        """
+        Calculates the mean squared error.
+        """
+        actual_output = self.inbound_layers[0].value
+        first = 1. / (2. * self.n_inputs)
+        norm = np.linalg.norm(self.ideal_output - actual_output)
+        self.value = first * np.square(norm)
+
+    def backward(self):
+        """
+        Calculates the gradient of the cost.
+        """
+        self.gradients[self.inbound_layers[0]] = 2 * self.inbound_layers[0].value
 
 
 # NOTE: assume y is a vector with values 0-9
@@ -111,11 +152,12 @@ class CrossEntropyWithSoftmax(Layer):
     self.gradients = {n: np.zeros_like(n.value) for n in self.inbound_Layer}
 
 
-def topological_sort(feed_dict):
+def topological_sort(feed_dict, ideal_output):
     """
     Sort the layers in topological order using Kahn's Algorithm.
 
     `feed_dict`: A dictionary where the key is a `Input` Layer and the value is the respective value feed to that Layer.
+    `ideal_output`: The correct output value for the last activation layer.
 
     Returns a list of sorted layers.
     """
@@ -142,6 +184,9 @@ def topological_sort(feed_dict):
 
         if isinstance(n, Input):
             n.value = feed_dict[n]
+        if isinstance(n, MSE):
+            n.ideal_output = ideal_output
+            n.n_inputs = len(feed_dict)
 
         L.append(n)
         for m in n.outbound_layers:
@@ -153,46 +198,30 @@ def topological_sort(feed_dict):
     return L
 
 
-def forward_and_backward(feed_dict, cost_function, ideal_output):
+def forward_and_backward(feed_dict, ideal_output):
     """
     Performs a forward pass and a backward pass through a list of sorted Layers.
 
     Arguments:
 
         `feed_dict`: A dictionary where the key is a `Input` Layer and the value is the respective value feed to that Layer.
-        `cost_function`: The cost function to use.
-        `ideal_output`: The correct output. Used to calculate cost.
+        `ideal_output`: The correct output value for the last activation layer.
     """
 
-    sorted_layers = topological_sort(feed_dict)
+    sorted_layers = topological_sort(feed_dict, ideal_output)
 
     # Forward pass
     for n in sorted_layers:
         n.forward()
 
-    # Calculate the cost against the output layer.
-    cost = cost_function(ideal_output, sorted_layers[-1].value, feed_dict)
-
     # Backward pass
-    reversed_layers = layers[::-1] # see: https://docs.python.org/2.3/whatsnew/section-slices.html
+    reversed_layers = sorted_layers[::-1] # see: https://docs.python.org/2.3/whatsnew/section-slices.html
+
+    # pass the cost to the first layer?
     for n in reversed_layers:
         n.backward()
 
-    return sorted_nodes
-
-
-def MSE(actual_output, ideal_output, feed_dict):
-    """
-    Calculates the mean squared error.
-
-    Arguments:
-        `actual_output`: a numpy array
-        `ideal_output`: a numpy array
-        `feed_dict`: the same feed_dict that sets the inputs
-    """
-    first = 1. / (2. * len(feed_dict))
-    norm = np.linalg.norm(ideal_output - actual_output)
-    return first * np.square(norm)
+    return sorted_layers
 
 
 # NOTE: This layer is just here to pass dummy gradients backwards for testing

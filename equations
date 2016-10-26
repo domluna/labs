@@ -13,6 +13,20 @@
               \,n\text{ rows}
 
 
+\mathbf{W}_n_k = \left.\left(
+                  \vphantom{\begin{array}{c}1\\1\\1\\1\\1\end{array}}
+                  \smash{\underbrace{
+                      \begin{array}{c}
+                             1\\
+                             0\\
+                             0\\
+                             0\\
+                             0
+                      \end{array}
+                      }_{k\text{ columns}}}
+              \right)\right\}
+              \,n\text{ rows}
+
 
 
 \mathbf{X}_n_m = \left.\left(
